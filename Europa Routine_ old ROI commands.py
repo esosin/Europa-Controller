@@ -133,11 +133,14 @@ def send_image(socket,sendPath,packageSize = 1024):
     f.close()
 '''
 def calibration_screen():
-    image = Image.new("P",(WIDTH,HEIGHT),255)
+    image = Image.new("P",(WIDTH,HEIGHT),0)
     pen = ImageDraw.Draw(image)
+    #pen.point([x0,y0], fill= 255)
+    
     pen.rectangle([(x0,y0), (x0 + calibrationWidth, y0 + calibrationHeight)], fill =255, outline = 0)
     pen.rectangle([(x0 + 3, y0),(x0 + calibrationWidth - 3, y0+calibrationHeight)], fill=255, outline = 255)
     pen.rectangle([(x0 , y0+3),(x0 + calibrationWidth , y0+calibrationHeight-3)], fill=255, outline = 255) 
+    
     disp.display(image)
 
 
@@ -231,13 +234,15 @@ def listen(sock,controller):
     
     # choose action based on the command
 
-
 def decision_tree(char, controller, sock):
     controller.output(backlight, GPIO.LOW)
     print("command == " + char)
     if (char == 'd'):
         openROI(sock, controller)
-           
+        
+    elif (char == 'e'):
+        settings()
+        
     elif (char == 'f'):
         start(controller)
         get_image(file_location)
@@ -251,58 +256,6 @@ def decision_tree(char, controller, sock):
 
 def openROI(sock, controller):
     print("open ROI")
-    ROIs = sock.recv(1024)
-    #print(ROIs)
-    ROIs  = [x for x in ROIs]
-    ROI_list = []
-    ROI = []
-    for x in ROIs:
-        if (x == 255):
-            ROI_list.append(list(ROI))
-            ROI = []
-        else:
-            ROI.append(x)
-        
-    print(str(ROI_list))
-    #print(str(ROIs))
-    # construct initial image 
-    image = Image.new("P",(WIDTH,HEIGHT),255)
-    pen = ImageDraw.Draw(image)
-    for ROI in ROI_list:
-        draw_ROI(ROI, pen)
-    disp.display(image)
-    proceed = sock.recv(1)
-    proceed = proceed.decode('ascii')
-    print ("Proceed command == " + str (proceed))
-    controller.output(backlight, GPIO.LOW)
-    count = 1
-    if (proceed == 'l'):
-        for ROI in ROI_list:
-            image = Image.new("P",(WIDTH, HEIGHT),0)
-            pen = ImageDraw.Draw(image)
-            draw_ROI(ROI, pen)
-            disp.display(image)
-            controller.output(backlight, GPIO.HIGH)
-            illuminate(exposure_time, controller, sock)
-            '''
-            proceed = sock.recv(1)
-            proceed = proceed.decode('ascii')
-            print ("Proceed command == " + str (proceed))
-            controller.output(backlight, GPIO.LOW)
-            if (proceed == 'l'):
-                print("ROI " + str(count) + " was illuminated")
-                illuminate(exposure_time, controller, sock)
-            elif (proceed == 'm'):
-                print("ROI " + str(count) + " was not illuminated")
-            '''
-            count = count + 1
-        
-    elif (proceed == 'm'):
-        print("user opted out of illumination, recalibrate or retake picture")
-    
-    
-        
-    '''
     x = sock.recv(1)#WHAT HAPPENS
     x = int.from_bytes(x, byteorder = 'big')
     x = float (x)
@@ -317,7 +270,7 @@ def openROI(sock, controller):
     print("Y: " + str(y))
     X = int(math.floor(x0 + (x * calibrationWidth)))
     Y = int(math.floor(y0 + (y * calibrationHeight)))
-    print("centered at (x,y) : (" + str(X) + ", " + str(Y) + ")")
+    print("pixel local (x,y) : (" + str(X) + ", " + str(Y) + ")")
     print("Open ROI DIAM: " + str(current_diam));
     open_circle(X, Y, current_diam, outline = True)
     controller.output(backlight, GPIO.HIGH)
@@ -332,41 +285,6 @@ def openROI(sock, controller):
     elif (proceed == 'm'):
         print("user opted out of illumination, use app to retake picture")
     clear_buffer = sock.recv(1024)
-    '''
-def draw_ROI(ROI, pen):
-    if(len(ROI) < 5):
-        print ("data not structured properly")
-    
-    shape = chr(ROI[0])
-    height = ROI[1]
-    width = ROI[2]
-    x = ROI[3]
-    x = float(x)
-    x = (100.0 - x) / 100.0
-    #print ("X: " + str(x))
-    y = ROI[4]
-    y = float(y)
-    y = (100.0 - y) / 100.0
-    #print("Y: " + str(y))
-    X = int(math.floor(x0 + (x * calibrationWidth)))
-    Y = int(math.floor(y0 + (y * calibrationHeight)))
-    
-    if (shape == 'a'):
-        print("Opening an ellipse")
-        print("Height == " + str(height))
-        print("Width == " +str(width))
-        pen.ellipse([(X - width/2, Y - height/2),(X + width/2, Y + height/2)] , fill = 255, outline = 0)
-        print("centered at (x,y) : (" + str(X) + ", " + str(Y) + ")")
-        
-    elif (shape == 'b'):
-        print("Opening a rectangle")
-        print("Height == " + str(height))
-        print("Width == " +str(width))
-        pen.rectangle([(X - width/2, Y - height/2),(X + width/2, Y + height/2)], fill = 255, outline = 0)
-        print("centered at (x,y) : (" + str(X) + ", " + str(Y) + ")")
-    else :
-        print("Unknown shape setting recieved")
-        
    
 def settings():
     print("accessing settings menu; listening for settings command")
@@ -412,11 +330,11 @@ def mm_to_pix(mm):
     return pix
 
 
+#calibration_screen()
 # Initialize camera and image storage location
-calibration_screen()
 camera = initialize_camera()
+#Europa = check_connection()
 file_location = '/home/pi/Documents/Europa.jpg'
 server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
 europa_sock = start_bluetooth_server(server_sock)
 listen(europa_sock, GPIOcontroller)
-

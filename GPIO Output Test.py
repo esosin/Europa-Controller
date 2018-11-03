@@ -17,7 +17,7 @@ DC = 24
 RST = 25
 SPI_PORT = 0
 SPI_DEVICE = 0
-backlight =4
+backlight =3
 UV = 2
 SPEED_HZ = 4000000
 
@@ -33,7 +33,7 @@ disp = TFT.ST7735(
 WIDTH = 128 
 HEIGHT = 160
 x0 = 40
-y0 = 40
+y0 = 60
 calibrationWidth = 50
 calibrationHeight = 50
 exposure = 180
